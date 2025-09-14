@@ -1,0 +1,23 @@
+# Configuration du composant attestation Enterprise
+idf_component_register(
+    SRCS 
+        "attestation_manager.c"
+        "remote_verifier.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        driver 
+        esp_system 
+        esp_log
+        esp_wifi
+        esp_http_client
+        json
+        secure_element
+        firmware_verification
+        nvs_flash
+        esp_netif
+        esp_event
+    PRIV_REQUIRES 
+        freertos
+        esp_timer
+)
