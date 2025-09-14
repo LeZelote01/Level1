@@ -2,8 +2,12 @@
  * @file esp32_crypto_manager.h
  * @brief Gestionnaire cryptographique ESP32 Enterprise Edition
  * 
- * Interface complète pour l'utilisation maximale des capacités crypto ESP32 :
- * HSM complet, TRNG optimisé, eFuse protection, accélérations matérielles.
+ * Version complète Enterprise avec toutes les fonctionnalités avancées :
+ * - HSM ESP32 intégré complet avec 8 blocs eFuse
+ * - TRNG optimisé haute performance
+ * - Fonctionnalités temps réel avancées
+ * - Monitoring et métriques Enterprise
+ * - Support cryptographie post-quantique (préparation)
  * 
  * @author Framework SecureIoT-VIF Enterprise
  * @version 2.0.0 - Enterprise Edition
@@ -21,191 +25,240 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 #include "esp_err.h"
+#include "esp_efuse.h"
+#include "esp_random.h"
+#include "mbedtls/aes.h"
+#include "mbedtls/sha256.h"
+#include "mbedtls/sha512.h"
+#include "mbedtls/rsa.h"
+#include "mbedtls/ecdsa.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/ctr_drbg.h"
 
 // ================================
 // Constantes Enterprise
 // ================================
 
-#define ESP32_SERIAL_NUMBER_SIZE        (6)
-#define ESP32_PUBLIC_KEY_SIZE           (65)   // Format non compressé ECDSA P-256
-#define ESP32_PRIVATE_KEY_SIZE          (32)   
-#define ESP32_SIGNATURE_SIZE            (64)   // ECDSA P-256 (r + s)
-#define ESP32_HASH_SIZE                 (32)   // SHA-256
-#define ESP32_CERTIFICATE_SIZE          (512)  // Certificat simple
-#define ESP32_CHALLENGE_SIZE            (32)   // Challenge attestation
-#define ESP32_RANDOM_MAX_SIZE           (256)  // Max génération aléatoire par appel
+#define ESP32_SERIAL_NUMBER_SIZE        (6)     // MAC Address comme ID unique
+#define ESP32_PUBLIC_KEY_SIZE           (64)    // ECDSA P-256
+#define ESP32_PRIVATE_KEY_SIZE          (32)    // ECDSA P-256
+#define ESP32_SIGNATURE_SIZE            (64)    // ECDSA P-256
+#define ESP32_CERTIFICATE_SIZE          (1024)  // Certificat Enterprise étendu
+#define ESP32_RANDOM_BYTES_SIZE         (32)    // TRNG output
+#define ESP32_AES_KEY_SIZE              (32)    // AES-256
+#define ESP32_SHA256_SIZE               (32)    // SHA-256 digest
+#define ESP32_SHA512_SIZE               (64)    // SHA-512 digest Enterprise
 
-// Nouveaux Enterprise
-#define ESP32_EFUSE_KEY_BLOCKS          (8)    // 8 blocs eFuse Enterprise
-#define ESP32_HSM_MAX_OPERATIONS        (1000) // Opérations/s HSM optimisé
-#define ESP32_TRNG_ENTROPY_POOL_SIZE    (2048) // Pool entropie Enterprise
-#define ESP32_SECURE_KEY_ROTATION_SIZE  (384)  // Rotation clés Enterprise
+// eFuse blocks Enterprise (8 blocs au lieu de 4)
+#define ESP32_EFUSE_DEVICE_KEY_BLOCK     (0)    // Clé privée principale
+#define ESP32_EFUSE_ATTESTATION_BLOCK    (1)    // Clé d'attestation
+#define ESP32_EFUSE_ENCRYPTION_BLOCK     (2)    // Clé de chiffrement
+#define ESP32_EFUSE_HMAC_BLOCK           (3)    // Clé HMAC
+#define ESP32_EFUSE_BACKUP_KEY_BLOCK     (4)    // Clé de sauvegarde Enterprise
+#define ESP32_EFUSE_SESSION_KEY_BLOCK    (5)    // Clé de session Enterprise
+#define ESP32_EFUSE_ML_MODEL_BLOCK       (6)    // Clé modèle ML Enterprise
+#define ESP32_EFUSE_RESERVED_BLOCK       (7)    // Réservé futur
 
-// ================================
-// Types et énumérations Enterprise
-// ================================
-
-/**
- * @brief Codes de résultat crypto ESP32 Enterprise
- */
-typedef enum {
-    ESP32_CRYPTO_SUCCESS = 0,
-    ESP32_CRYPTO_ERROR_INVALID_PARAM,
-    ESP32_CRYPTO_ERROR_NOT_INITIALIZED,
-    ESP32_CRYPTO_ERROR_MEMORY,
-    ESP32_CRYPTO_ERROR_EFUSE_PROGRAMMING,
-    ESP32_CRYPTO_ERROR_VERIFICATION_FAILED,
-    ESP32_CRYPTO_ERROR_EXECUTION_FAILED,
-    ESP32_CRYPTO_ERROR_ENTROPY_FAILED,
-    ESP32_CRYPTO_ERROR_KEY_GENERATION,
-    ESP32_CRYPTO_ERROR_FLASH_ENCRYPTION,
-    ESP32_CRYPTO_ERROR_SECURE_BOOT,
-    // Nouveaux codes Enterprise
-    ESP32_CRYPTO_ERROR_HSM_OPERATION_FAILED,
-    ESP32_CRYPTO_ERROR_TRNG_INSUFFICIENT_ENTROPY,
-    ESP32_CRYPTO_ERROR_KEY_ROTATION_FAILED,
-    ESP32_CRYPTO_ERROR_TAMPER_DETECTED,
-    ESP32_CRYPTO_ERROR_PERFORMANCE_DEGRADED,
-    ESP32_CRYPTO_ERROR_COMPLIANCE_VIOLATION,
-    ESP32_CRYPTO_ERROR_EMERGENCY_SHUTDOWN
-} esp32_crypto_result_t;
-
-/**
- * @brief États du système crypto Enterprise
- */
+// États du gestionnaire crypto ESP32 Enterprise
 typedef enum {
     ESP32_CRYPTO_STATE_UNINITIALIZED = 0,
     ESP32_CRYPTO_STATE_INITIALIZING,
     ESP32_CRYPTO_STATE_CONFIGURED,
-    ESP32_CRYPTO_STATE_OPERATIONAL,
-    ESP32_CRYPTO_STATE_PERFORMANCE_MODE,    // Nouveau Enterprise
-    ESP32_CRYPTO_STATE_HIGH_SECURITY_MODE,  // Nouveau Enterprise
-    ESP32_CRYPTO_STATE_MAINTENANCE_MODE,    // Nouveau Enterprise
-    ESP32_CRYPTO_STATE_EMERGENCY_SHUTDOWN,  // Nouveau Enterprise
-    ESP32_CRYPTO_STATE_ERROR
+    ESP32_CRYPTO_STATE_SECURE_BOOT_ENABLED,
+    ESP32_CRYPTO_STATE_ERROR,
+    ESP32_CRYPTO_STATE_FLASH_ENCRYPTED,
+    ESP32_CRYPTO_STATE_ENTERPRISE_READY,        // Nouveau Enterprise
+    ESP32_CRYPTO_STATE_TAMPER_DETECTED,         // Nouveau Enterprise
+    ESP32_CRYPTO_STATE_EMERGENCY_MODE           // Nouveau Enterprise
 } esp32_crypto_state_t;
 
-/**
- * @brief Types d'opérations crypto Enterprise
- */
+// Types d'opérations cryptographiques ESP32 Enterprise
 typedef enum {
-    ESP32_CRYPTO_OP_HASH = 0,
-    ESP32_CRYPTO_OP_ENCRYPT,
-    ESP32_CRYPTO_OP_DECRYPT,
-    ESP32_CRYPTO_OP_SIGN,
-    ESP32_CRYPTO_OP_VERIFY,
-    ESP32_CRYPTO_OP_RANDOM,
-    ESP32_CRYPTO_OP_KEY_DERIVE,
-    // Nouvelles opérations Enterprise
-    ESP32_CRYPTO_OP_ATTESTATION_CONTINUOUS,
-    ESP32_CRYPTO_OP_INTEGRITY_REALTIME,
-    ESP32_CRYPTO_OP_KEY_ROTATION,
-    ESP32_CRYPTO_OP_BEHAVIORAL_ANALYSIS,
-    ESP32_CRYPTO_OP_PERFORMANCE_MONITORING
+    ESP32_CRYPTO_SIGN = 0,
+    ESP32_CRYPTO_VERIFY,
+    ESP32_CRYPTO_ENCRYPT_AES,
+    ESP32_CRYPTO_DECRYPT_AES,
+    ESP32_CRYPTO_ECDH,
+    ESP32_CRYPTO_HMAC_SHA256,
+    ESP32_CRYPTO_RANDOM_TRNG,
+    ESP32_CRYPTO_HASH_SHA256,
+    ESP32_CRYPTO_HASH_SHA512,                   // Nouveau Enterprise
+    ESP32_CRYPTO_RSA_ENCRYPT,
+    ESP32_CRYPTO_RSA_DECRYPT,
+    ESP32_CRYPTO_ATTESTATION_CONTINUOUS,        // Nouveau Enterprise
+    ESP32_CRYPTO_ML_SIGNATURE,                  // Nouveau Enterprise
+    ESP32_CRYPTO_QUANTUM_RESISTANT              // Préparation futur
 } esp32_crypto_operation_t;
 
+// Résultat des opérations crypto ESP32 Enterprise
+typedef enum {
+    ESP32_CRYPTO_SUCCESS = 0,
+    ESP32_CRYPTO_ERROR_INVALID_PARAM = -1,
+    ESP32_CRYPTO_ERROR_NOT_INITIALIZED = -2,
+    ESP32_CRYPTO_ERROR_MEMORY = -3,
+    ESP32_CRYPTO_ERROR_EFUSE_PROGRAMMING = -4,
+    ESP32_CRYPTO_ERROR_VERIFICATION_FAILED = -5,
+    ESP32_CRYPTO_ERROR_EXECUTION_FAILED = -6,
+    ESP32_CRYPTO_ERROR_ENTROPY_FAILED = -7,
+    ESP32_CRYPTO_ERROR_KEY_GENERATION = -8,
+    ESP32_CRYPTO_ERROR_FLASH_ENCRYPTION = -9,
+    ESP32_CRYPTO_ERROR_SECURE_BOOT = -10,
+    ESP32_CRYPTO_ERROR_TAMPER_DETECTED = -11,   // Nouveau Enterprise
+    ESP32_CRYPTO_ERROR_PERFORMANCE_DEGRADED = -12, // Nouveau Enterprise
+    ESP32_CRYPTO_ERROR_COMPLIANCE_VIOLATION = -13  // Nouveau Enterprise
+} esp32_crypto_result_t;
+
+// ================================
+// Structures de données Enterprise
+// ================================
+
 /**
- * @brief Configuration crypto ESP32 Enterprise
+ * @brief Configuration du gestionnaire crypto ESP32 Enterprise
  */
 typedef struct {
-    bool enable_secure_boot;
-    bool enable_flash_encryption;
-    bool enable_hardware_random;
-    bool enable_efuse_protection;
-    bool enable_hsm_max_performance;      // Nouveau Enterprise
-    bool enable_trng_continuous_test;     // Nouveau Enterprise
-    bool enable_key_rotation;             // Nouveau Enterprise
-    bool enable_tamper_detection;         // Nouveau Enterprise
-    bool enable_performance_monitoring;   // Nouveau Enterprise
-    bool enable_compliance_mode;          // Nouveau Enterprise
-    uint8_t entropy_source;
-    uint16_t rsa_key_size;
-    uint32_t hsm_operation_timeout_ms;    // Nouveau Enterprise
-    uint32_t trng_entropy_threshold;      // Nouveau Enterprise
-    bool enable_debug_mode;
-    uint8_t max_retries;
+    bool enable_secure_boot;            // Activer Secure Boot v2
+    bool enable_flash_encryption;       // Activer chiffrement flash
+    bool enable_hardware_random;        // Utiliser TRNG matériel
+    bool enable_efuse_protection;       // Protéger les eFuses
+    uint8_t entropy_source;             // Source d'entropie
+    uint32_t rsa_key_size;              // Taille clé RSA (1024, 2048, 4096)
+    bool enable_debug_mode;             // Mode debug (toujours désactivé en Enterprise)
+    uint8_t max_retries;                // Tentatives max pour opérations
+    
+    // Paramètres Enterprise avancés
+    bool enable_tamper_detection;       // Détection de manipulation
+    bool enable_performance_monitoring; // Monitoring performance
+    bool enable_continuous_health_check; // Vérification santé continue
+    uint32_t health_check_interval_ms;  // Intervalle vérification santé
+    bool enable_quantum_resistance;     // Préparation crypto post-quantique
+    uint8_t security_level;             // Niveau sécurité (1-5, 5=max)
 } esp32_crypto_config_t;
 
 /**
- * @brief Informations du dispositif crypto ESP32 Enterprise
+ * @brief Informations sur le crypto ESP32 Enterprise
  */
 typedef struct {
-    uint8_t device_id[ESP32_SERIAL_NUMBER_SIZE];
-    uint32_t chip_revision;
-    bool secure_boot_enabled;
-    bool flash_encryption_enabled;
-    bool efuse_protection_enabled;        // Nouveau Enterprise
-    bool hsm_max_performance_enabled;     // Nouveau Enterprise
-    bool trng_continuous_test_enabled;    // Nouveau Enterprise
-    bool tamper_detection_enabled;        // Nouveau Enterprise
-    esp32_crypto_state_t state;
-    uint32_t operation_count;
-    uint32_t error_count;
-    uint64_t last_operation_time;
-    uint32_t available_entropy;
-    // Métriques Enterprise
-    uint32_t hsm_operations_per_second;   // Nouveau Enterprise
-    uint32_t trng_entropy_rate;           // Nouveau Enterprise
-    float performance_score;              // Nouveau Enterprise
-    uint32_t security_score;              // Nouveau Enterprise
-    uint32_t compliance_level;            // Nouveau Enterprise
-    uint64_t uptime_seconds;              // Nouveau Enterprise
+    uint8_t device_id[ESP32_SERIAL_NUMBER_SIZE];  // ID unique (MAC)
+    uint32_t chip_revision;                        // Révision du chip
+    bool secure_boot_enabled;                      // État Secure Boot
+    bool flash_encryption_enabled;                 // État chiffrement flash
+    bool efuse_keys_programmed;                    // Clés eFuse programmées
+    esp32_crypto_state_t state;                    // État actuel
+    uint32_t error_count;                          // Compteur d'erreurs
+    uint32_t operation_count;                      // Compteur d'opérations
+    uint64_t last_operation_time;                  // Dernière opération
+    uint32_t available_entropy;                    // Entropie disponible
+    
+    // Informations Enterprise spécifiques
+    uint32_t hardware_version;                     // Version matérielle
+    uint32_t firmware_version;                     // Version firmware
+    uint8_t security_level;                        // Niveau sécurité actuel
+    float performance_score;                       // Score performance (0.0-1.0)
+    bool tamper_detected;                          // Détection manipulation
+    uint32_t total_uptime_seconds;                 // Temps fonctionnement total
 } esp32_crypto_info_t;
 
 /**
- * @brief Informations de clé Enterprise avec métadonnées étendues
+ * @brief Structure pour les clés ESP32 Enterprise (8 slots)
  */
 typedef struct {
-    uint8_t key_id;
-    uint8_t key_type;
-    uint16_t key_size;
-    bool is_in_efuse;
-    bool is_protected;
-    bool is_rotatable;                    // Nouveau Enterprise
-    bool is_backup_available;             // Nouveau Enterprise
-    uint8_t efuse_block;
-    uint32_t usage_count;
-    uint64_t creation_time;               // Nouveau Enterprise
-    uint64_t last_rotation_time;          // Nouveau Enterprise
-    uint32_t rotation_interval_hours;     // Nouveau Enterprise
-    uint8_t security_level;               // Nouveau Enterprise
-    uint8_t key_data[64];                 // Public key ou métadonnées
+    uint8_t key_id;                                // ID de la clé (0-7)
+    uint8_t key_type;                              // Type (ECDSA, AES, RSA, HMAC)
+    size_t key_size;                               // Taille de la clé
+    uint8_t key_data[ESP32_PUBLIC_KEY_SIZE];       // Données de clé (publique)
+    bool is_in_efuse;                              // Stockée dans eFuse
+    bool is_protected;                             // Protection activée
+    uint32_t usage_count;                          // Compteur d'utilisation
+    uint8_t efuse_block;                           // Block eFuse utilisé (0-7)
+    
+    // Métadonnées Enterprise
+    uint32_t creation_time;                        // Timestamp création
+    uint32_t last_used_time;                       // Dernière utilisation
+    uint8_t security_level;                        // Niveau sécurité clé
+    bool is_quantum_resistant;                     // Résistance quantique
 } esp32_key_info_t;
 
 /**
- * @brief Structure d'attestation ESP32 Enterprise étendue
+ * @brief Structure pour les signatures ESP32 Enterprise
  */
 typedef struct {
-    uint8_t challenge[ESP32_CHALLENGE_SIZE];
-    uint8_t device_id[ESP32_SERIAL_NUMBER_SIZE];
-    uint32_t timestamp;
-    uint32_t boot_count;
-    uint8_t response[ESP32_SIGNATURE_SIZE];
-    uint8_t device_cert[ESP32_CERTIFICATE_SIZE];
-    bool is_valid;
-    // Extensions Enterprise
-    uint32_t firmware_version;            // Nouveau Enterprise
-    uint32_t security_level;              // Nouveau Enterprise
-    uint8_t hardware_config_hash[32];     // Nouveau Enterprise
-    uint32_t performance_metrics;         // Nouveau Enterprise
-    uint8_t compliance_status;            // Nouveau Enterprise
-    uint64_t continuous_operation_time;   // Nouveau Enterprise
+    uint8_t signature[ESP32_SIGNATURE_SIZE];       // Signature ECDSA
+    size_t signature_size;                         // Taille de la signature
+    uint8_t message_hash[ESP32_SHA256_SIZE];       // Hash SHA-256 du message
+    bool is_valid;                                 // État de validation
+    uint32_t timestamp;                            // Timestamp de création
+    
+    // Métadonnées Enterprise
+    uint8_t key_id;                                // ID clé utilisée
+    uint8_t security_level;                        // Niveau sécurité
+    float confidence_score;                        // Score confiance
+    uint32_t verification_time_us;                 // Temps vérification
+} esp32_signature_t;
+
+/**
+ * @brief Structure pour l'attestation ESP32 Enterprise
+ */
+typedef struct {
+    uint8_t challenge[32];                         // Challenge reçu
+    uint8_t response[ESP32_SIGNATURE_SIZE];        // Réponse signée
+    uint8_t device_cert[ESP32_CERTIFICATE_SIZE];   // Certificat Enterprise
+    uint32_t timestamp;                            // Timestamp attestation
+    uint8_t device_id[ESP32_SERIAL_NUMBER_SIZE];   // ID unique ESP32
+    bool is_valid;                                 // État de validation
+    uint32_t boot_count;                           // Compteur de démarrages
+    
+    // Métadonnées Enterprise étendues
+    uint8_t security_level;                        // Niveau sécurité
+    uint32_t firmware_version;                     // Version firmware
+    uint32_t hardware_version;                     // Version matérielle
+    float performance_score;                       // Score performance
+    bool tamper_detected;                          // Détection manipulation
+    uint32_t total_operations;                     // Opérations totales
 } esp32_attestation_t;
 
 /**
- * @brief Métriques de performance crypto Enterprise
+ * @brief Métriques de performance Enterprise
  */
 typedef struct {
-    uint32_t operations_per_second;
-    uint32_t average_operation_time_us;
-    uint32_t peak_operation_time_us;
-    uint32_t entropy_generation_rate;
-    uint32_t cache_hit_ratio_percent;
-    uint32_t error_rate_per_million;
-    uint32_t temperature_celsius;
-    uint32_t power_consumption_mw;
-    float efficiency_score;
-} esp32_crypto_performance_t;
+    uint64_t init_time;                            // Temps initialisation
+    uint64_t total_uptime;                         // Temps fonctionnement
+    
+    // Métriques opérations
+    uint32_t total_random_generations;             // Générations aléatoires
+    uint64_t total_random_bytes;                   // Bytes aléatoires générés
+    uint64_t avg_random_generation_time_us;        // Temps moyen génération
+    
+    uint32_t total_hash_operations;                // Opérations hash
+    uint64_t total_hash_bytes;                     // Bytes hashés
+    uint64_t avg_hash_time_us;                     // Temps moyen hash
+    
+    uint32_t total_signatures;                     // Signatures générées
+    uint64_t avg_signature_time_us;                // Temps moyen signature
+    
+    uint32_t total_verifications;                  // Vérifications
+    uint64_t avg_verification_time_us;             // Temps moyen vérification
+    
+    uint32_t total_key_generations;                // Générations de clés
+    uint64_t avg_key_generation_time_us;           // Temps moyen génération clé
+    
+    uint32_t total_attestations;                   // Attestations
+    uint64_t avg_attestation_time_us;              // Temps moyen attestation
+    uint64_t last_attestation_time;                // Dernière attestation
+    
+    // Métriques Enterprise spécifiques
+    uint32_t total_health_checks;                  // Vérifications santé
+    uint32_t health_check_failures;                // Échecs vérification
+    uint64_t avg_health_check_time_us;             // Temps moyen vérification
+    uint64_t last_health_check;                    // Dernière vérification
+    
+    uint32_t total_self_tests;                     // Auto-tests
+    uint64_t avg_self_test_time_us;                // Temps moyen auto-test
+    uint64_t last_self_test_time;                  // Dernier auto-test
+    
+    uint32_t entropy_failures;                     // Échecs entropie
+    uint32_t tamper_detections;                    // Détections manipulation
+    uint32_t performance_degradations;             // Dégradations performance
+} esp32_crypto_metrics_t;
 
 // ================================
 // Fonctions principales Enterprise
@@ -213,274 +266,257 @@ typedef struct {
 
 /**
  * @brief Initialise le gestionnaire crypto ESP32 Enterprise
- * @param config Configuration Enterprise (NULL pour défaut)
- * @return Code de résultat
+ * 
+ * @param config Configuration crypto Enterprise (NULL pour défaut)
+ * @return esp_err_t ESP_OK en cas de succès
  */
 esp_err_t esp32_crypto_manager_init_enterprise(const esp32_crypto_config_t* config);
 
 /**
- * @brief Dé-initialise le gestionnaire crypto Enterprise
- * @return Code de résultat
+ * @brief Dé-initialise le gestionnaire crypto ESP32 Enterprise
+ * 
+ * @return esp_err_t ESP_OK en cas de succès
  */
 esp_err_t esp32_crypto_manager_deinit_enterprise(void);
 
 /**
- * @brief Obtient les informations détaillées du dispositif Enterprise
- * @param info Structure d'informations à remplir
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_get_device_info_enterprise(esp32_crypto_info_t* info);
-
-/**
- * @brief Vérification de santé crypto Enterprise complète
- * @return Code de résultat
+ * @brief Vérifie l'état de santé du crypto ESP32 Enterprise
+ * 
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS si tout est OK
  */
 esp32_crypto_result_t esp32_crypto_health_check_enterprise(void);
 
-/**
- * @brief Auto-test crypto ESP32 Enterprise complet
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_self_test_enterprise(void);
-
 // ================================
-// Fonctions de génération de clés Enterprise
+// Gestion des clés Enterprise
 // ================================
 
 /**
- * @brief Génère une paire de clés ECDSA dans eFuse Enterprise
- * @param key_id ID du slot de clé
- * @param public_key Buffer pour la clé publique
- * @param key_metadata Métadonnées de clé Enterprise
- * @return Code de résultat
+ * @brief Génère une paire de clés ECDSA Enterprise dans eFuse
+ * 
+ * @param key_id ID de la clé (0-7) Enterprise
+ * @param public_key Buffer pour la clé publique (64 bytes)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
-esp32_crypto_result_t esp32_crypto_generate_ecdsa_keypair_enterprise(uint8_t key_id, uint8_t* public_key, esp32_key_info_t* key_metadata);
-
-/**
- * @brief Rotation automatique des clés Enterprise
- * @param key_id ID du slot de clé
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_rotate_key_enterprise(uint8_t key_id);
-
-/**
- * @brief Sauvegarde sécurisée des clés Enterprise
- * @param key_id ID du slot de clé
- * @param backup_location Emplacement de sauvegarde
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_backup_key_enterprise(uint8_t key_id, uint8_t backup_location);
+esp32_crypto_result_t esp32_crypto_generate_ecdsa_keypair_enterprise(uint8_t key_id, uint8_t* public_key);
 
 // ================================
-// Fonctions cryptographiques Enterprise avancées
+// Opérations cryptographiques Enterprise
 // ================================
 
 /**
- * @brief Génération aléatoire TRNG optimisée Enterprise
- * @param random_bytes Buffer de sortie
- * @param length Longueur requise
- * @return Code de résultat
+ * @brief Génère des bytes aléatoires sécurisés avec TRNG Enterprise
+ * 
+ * @param random_bytes Buffer pour les bytes aléatoires
+ * @param length Nombre de bytes à générer
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
 esp32_crypto_result_t esp32_crypto_generate_random_enterprise(uint8_t* random_bytes, size_t length);
 
 /**
- * @brief Test continu TRNG Enterprise
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_trng_continuous_test(void);
-
-/**
- * @brief Calcul SHA-256 avec accélération matérielle maximale
- * @param data Données d'entrée
+ * @brief Calcule un hash SHA-256 matériel Enterprise
+ * 
+ * @param data Données à hasher
  * @param data_length Longueur des données
- * @param hash Hash de sortie
- * @return Code de résultat
+ * @param hash Buffer pour le hash (32 bytes)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
 esp32_crypto_result_t esp32_crypto_sha256_enterprise(const uint8_t* data, size_t data_length, uint8_t* hash);
 
 /**
- * @brief Signature ECDSA avec HSM optimisé Enterprise
- * @param key_id ID de la clé dans eFuse
- * @param message_hash Hash du message
- * @param signature Signature de sortie
- * @return Code de résultat
+ * @brief Calcule un hash SHA-512 matériel Enterprise
+ * 
+ * @param data Données à hasher
+ * @param data_length Longueur des données
+ * @param hash Buffer pour le hash (64 bytes)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
+ */
+esp32_crypto_result_t esp32_crypto_sha512_enterprise(const uint8_t* data, size_t data_length, uint8_t* hash);
+
+/**
+ * @brief Signe un message avec ECDSA Enterprise
+ * 
+ * @param key_id ID de la clé privée dans eFuse (0-7)
+ * @param message_hash Hash SHA-256 du message (32 bytes)
+ * @param signature Buffer pour la signature (64 bytes)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
 esp32_crypto_result_t esp32_crypto_ecdsa_sign_enterprise(uint8_t key_id, const uint8_t* message_hash, uint8_t* signature);
 
 /**
- * @brief Vérification ECDSA optimisée Enterprise
- * @param public_key Clé publique
- * @param message_hash Hash du message
- * @param signature Signature à vérifier
- * @return Code de résultat
+ * @brief Vérifie une signature ECDSA Enterprise
+ * 
+ * @param public_key Clé publique ECDSA (64 bytes)
+ * @param message_hash Hash SHA-256 du message (32 bytes)
+ * @param signature Signature à vérifier (64 bytes)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS si valide
  */
 esp32_crypto_result_t esp32_crypto_ecdsa_verify_enterprise(const uint8_t* public_key, const uint8_t* message_hash, const uint8_t* signature);
 
-// ================================
-// Fonctions d'attestation Enterprise
-// ================================
-
 /**
- * @brief Attestation complète Enterprise avec métadonnées étendues
- * @param challenge Challenge d'entrée
+ * @brief Effectue une attestation Enterprise de l'appareil ESP32
+ * 
+ * @param challenge Challenge reçu du vérifieur
  * @param challenge_size Taille du challenge
- * @param attestation Structure d'attestation Enterprise
- * @return Code de résultat
+ * @param attestation Structure d'attestation Enterprise à remplir
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
-esp32_crypto_result_t esp32_crypto_perform_attestation_enterprise(const uint8_t* challenge, size_t challenge_size, esp32_attestation_t* attestation);
+esp32_crypto_result_t esp32_crypto_perform_attestation_enterprise(const uint8_t* challenge, size_t challenge_size, 
+                                                                  esp32_attestation_t* attestation);
 
 /**
- * @brief Attestation continue autonome Enterprise
- * @return Code de résultat
+ * @brief Auto-test complet crypto ESP32 Enterprise
+ * 
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS si tous les tests passent
  */
-esp32_crypto_result_t esp32_crypto_continuous_attestation(void);
-
-/**
- * @brief Renouvellement automatique d'attestation Enterprise
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_attestation_renewal(void);
+esp32_crypto_result_t esp32_crypto_self_test_enterprise(void);
 
 // ================================
-// Fonctions de monitoring Enterprise
+// Gestion d'état et monitoring Enterprise
 // ================================
 
 /**
- * @brief Monitoring de performance crypto en temps réel
- * @param performance Métriques de performance
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_get_performance_metrics(esp32_crypto_performance_t* performance);
-
-/**
- * @brief Optimisation automatique des performances
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_optimize_performance(void);
-
-/**
- * @brief Détection de tampering matériel
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_tamper_detection(void);
-
-// ================================
-// Fonctions de gestion d'énergie Enterprise
-// ================================
-
-/**
- * @brief Gestion énergétique adaptative Enterprise
- * @param power_mode Mode de consommation
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_adaptive_power_management(uint8_t power_mode);
-
-/**
- * @brief Surveillance de la température crypto
- * @param temperature_celsius Température actuelle
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_temperature_monitoring(uint32_t* temperature_celsius);
-
-// ================================
-// Fonctions de conformité Enterprise
-// ================================
-
-/**
- * @brief Vérification de conformité sécurité
- * @param compliance_level Niveau de conformité atteint
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_compliance_check(uint32_t* compliance_level);
-
-/**
- * @brief Audit de sécurité automatique
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_security_audit(void);
-
-// ================================
-// Fonctions utilitaires Enterprise
-// ================================
-
-/**
- * @brief Convertit un code d'erreur en chaîne lisible
- * @param error Code d'erreur
- * @return Chaîne descriptive
- */
-const char* esp32_crypto_error_to_string(esp32_crypto_result_t error);
-
-/**
- * @brief Affiche les informations détaillées du dispositif Enterprise
- */
-void esp32_crypto_print_device_info_enterprise(void);
-
-/**
- * @brief Obtient les statistiques détaillées Enterprise
- * @param operations_count Nombre d'opérations
- * @param error_count Nombre d'erreurs
- * @param last_operation_time Temps de la dernière opération
- * @param performance_score Score de performance
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_get_statistics_enterprise(uint32_t* operations_count, uint32_t* error_count, uint64_t* last_operation_time, float* performance_score);
-
-/**
- * @brief Obtient l'ID unique du dispositif
- * @param device_id Buffer pour l'ID du dispositif
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_get_device_id(uint8_t* device_id);
-
-/**
- * @brief Obtient les opérations par seconde HSM
- * @return Opérations par seconde
- */
-uint32_t esp32_crypto_get_ops_per_second(void);
-
-// ================================
-// Fonctions de compatibilité Enterprise
-// ================================
-
-/**
- * @brief Vérification d'intégrité Enterprise
- * @return Code de résultat
- */
-esp32_crypto_result_t esp32_crypto_verify_integrity_enterprise(void);
-
-/**
- * @brief Mise à jour heartbeat Enterprise avec métriques
- * @param counter Compteur heartbeat
- * @param security_score Score de sécurité
- * @return Code de résultat
+ * @brief Met à jour le heartbeat Enterprise dans les eFuses
+ * 
+ * @param counter Compteur de heartbeat
+ * @param security_score Score de sécurité (0-100)
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
 esp32_crypto_result_t esp32_crypto_update_heartbeat_enterprise(uint32_t counter, uint32_t security_score);
 
 /**
- * @brief Stockage d'état d'urgence Enterprise
- * @return Code de résultat
+ * @brief Stocke l'état d'urgence Enterprise dans la NVS
+ * 
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
  */
 esp32_crypto_result_t esp32_crypto_store_emergency_state_enterprise(void);
 
+/**
+ * @brief Obtient les métriques de performance Enterprise
+ * 
+ * @param metrics Buffer pour les métriques
+ * @return esp32_crypto_result_t ESP32_CRYPTO_SUCCESS en cas de succès
+ */
+esp32_crypto_result_t esp32_crypto_get_metrics_enterprise(esp32_crypto_metrics_t* metrics);
+
+/**
+ * @brief Obtient le nombre d'opérations par seconde
+ * 
+ * @return uint32_t Opérations par seconde
+ */
+uint32_t esp32_crypto_get_ops_per_second(void);
+
 // ================================
-// Alias de compatibilité (héritage Community/Full)
+// Utilitaires et debugging Enterprise
 // ================================
 
-// Maintient la compatibilité avec les versions précédentes
-#define esp32_crypto_manager_init(config) esp32_crypto_manager_init_enterprise(config)
-#define esp32_crypto_manager_deinit() esp32_crypto_manager_deinit_enterprise()
-#define esp32_crypto_get_device_info(info) esp32_crypto_get_device_info_enterprise(info)
-#define esp32_crypto_health_check() esp32_crypto_health_check_enterprise()
-#define esp32_crypto_self_test() esp32_crypto_self_test_enterprise()
-#define esp32_crypto_generate_ecdsa_keypair(key_id, public_key) esp32_crypto_generate_ecdsa_keypair_enterprise(key_id, public_key, NULL)
-#define esp32_crypto_generate_random(buffer, length) esp32_crypto_generate_random_enterprise(buffer, length)
-#define esp32_crypto_sha256(data, length, hash) esp32_crypto_sha256_enterprise(data, length, hash)
-#define esp32_crypto_ecdsa_sign(key_id, hash, signature) esp32_crypto_ecdsa_sign_enterprise(key_id, hash, signature)
-#define esp32_crypto_ecdsa_verify(public_key, hash, signature) esp32_crypto_ecdsa_verify_enterprise(public_key, hash, signature)
-#define esp32_crypto_perform_attestation(challenge, size, attestation) esp32_crypto_perform_attestation_enterprise(challenge, size, attestation)
-#define esp32_crypto_verify_integrity() esp32_crypto_verify_integrity_enterprise()
-#define esp32_crypto_update_heartbeat(counter) esp32_crypto_update_heartbeat_enterprise(counter, 100)
-#define esp32_crypto_store_emergency_state() esp32_crypto_store_emergency_state_enterprise()
+/**
+ * @brief Convertit un code d'erreur en string
+ * 
+ * @param error Code d'erreur ESP32 crypto
+ * @return const char* Description de l'erreur
+ */
+const char* esp32_crypto_error_to_string(esp32_crypto_result_t error);
+
+/**
+ * @brief Affiche les informations du crypto ESP32 Enterprise (debug)
+ */
+void esp32_crypto_print_device_info_enterprise(void);
+
+// ================================
+// Fonctions de compatibilité API de base
+// ================================
+
+/**
+ * @brief Initialise le gestionnaire crypto ESP32 (wrapper Enterprise)
+ */
+esp_err_t esp32_crypto_manager_init(const esp32_crypto_config_t* config);
+
+/**
+ * @brief Dé-initialise le gestionnaire crypto ESP32 (wrapper Enterprise)
+ */
+esp_err_t esp32_crypto_manager_deinit(void);
+
+/**
+ * @brief Obtient les informations du crypto ESP32 (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_get_device_info(esp32_crypto_info_t* info);
+
+/**
+ * @brief Vérifie l'état de santé du crypto ESP32 (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_health_check(void);
+
+/**
+ * @brief Génère des bytes aléatoires sécurisés (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_generate_random(uint8_t* random_bytes, size_t length);
+
+/**
+ * @brief Calcule un hash SHA-256 matériel (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_sha256(const uint8_t* data, size_t data_length, uint8_t* hash);
+
+/**
+ * @brief Génère une paire de clés ECDSA (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_generate_ecdsa_keypair(uint8_t key_id, uint8_t* public_key);
+
+/**
+ * @brief Obtient la clé publique depuis eFuse (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_get_public_key(uint8_t key_id, uint8_t* public_key);
+
+/**
+ * @brief Signe un message avec ECDSA (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_ecdsa_sign(uint8_t key_id, const uint8_t* message_hash, uint8_t* signature);
+
+/**
+ * @brief Vérifie une signature ECDSA (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_ecdsa_verify(const uint8_t* public_key, const uint8_t* message_hash, const uint8_t* signature);
+
+/**
+ * @brief Effectue une attestation de l'appareil (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_perform_attestation(const uint8_t* challenge, size_t challenge_size, 
+                                                       esp32_attestation_t* attestation);
+
+/**
+ * @brief Vérifie l'intégrité du système crypto (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_verify_integrity(void);
+
+/**
+ * @brief Met à jour le heartbeat (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_update_heartbeat(uint32_t counter);
+
+/**
+ * @brief Stocke l'état d'urgence (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_store_emergency_state(void);
+
+/**
+ * @brief Teste les fonctionnalités crypto de base (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_self_test(void);
+
+/**
+ * @brief Affiche les informations du crypto ESP32 (wrapper Enterprise)
+ */
+void esp32_crypto_print_device_info(void);
+
+/**
+ * @brief Obtient les statistiques d'utilisation (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_get_statistics(uint32_t* operations_count, uint32_t* error_count, 
+                                                   uint64_t* last_operation_time);
+
+/**
+ * @brief Obtient l'ID unique de l'appareil (wrapper Enterprise)
+ */
+esp32_crypto_result_t esp32_crypto_get_device_id(uint8_t* device_id);
 
 #ifdef __cplusplus
 }
