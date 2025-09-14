@@ -1,0 +1,98 @@
+# Requirements pour les outils Enterprise SecureIoT-VIF
+# Installation: pip install -r requirements.txt
+
+# Communication série
+pyserial>=3.5
+
+# Cryptographie
+cryptography>=41.0.0
+
+# Base de données
+sqlite3  # Inclus dans Python standard
+
+# Interface web et monitoring
+flask>=2.3.0
+flask-socketio>=5.3.0
+
+# Visualisation et graphiques
+plotly>=5.15.0
+matplotlib>=3.7.0
+numpy>=1.24.0
+
+# Traitement de données
+pandas>=2.0.0
+
+# Tests et validation
+pytest>=7.4.0
+requests>=2.31.0
+
+# Utilitaires système
+psutil>=5.9.0
+pathlib  # Inclus dans Python standard
+
+# Formats de données
+json  # Inclus dans Python standard
+argparse  # Inclus dans Python standard
+configparser>=6.0.0
+
+# Outils ESP-IDF (optionnel, install via ESP-IDF)
+# esptool>=4.6.0
+# espefuse>=4.6.0
+# espsecure>=4.6.0
+
+# Interface utilisateur (optionnel)
+rich>=13.4.0
+click>=8.1.0
+
+# Analyse statistique
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Génération de rapports
+jinja2>=3.1.0
+weasyprint>=59.0  # Pour génération PDF
+
+# Monitoring système
+psutil>=5.9.0
+
+# Validation et conformité
+pycryptodome>=3.18.0
+
+# Tests de performance
+memory-profiler>=0.61.0
+py-spy>=0.3.14  # Optionnel pour profiling
+
+# Utilitaires réseau (pour tests de communication)
+scapy>=2.5.0  # Optionnel pour analyse réseau
+
+# Formats de sortie
+openpyxl>=3.1.0  # Pour export Excel
+pdfkit>=1.0.0    # Pour génération PDF
+
+# Développement et debug
+ipython>=8.14.0  # REPL amélioré
+debugpy>=1.6.0   # Debug Python
+
+# Validation de données
+jsonschema>=4.18.0
+cerberus>=1.3.4
+
+# Logging avancé
+loguru>=0.7.0
+
+# Configuration
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Outils de développement (optionnel)
+black>=23.7.0    # Formatage code
+isort>=5.12.0    # Tri imports
+flake8>=6.0.0    # Linting
+
+# Documentation (optionnel)
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
+
+# Note: Versions minimales spécifiées pour compatibilité
+# Certains outils ESP-IDF doivent être installés via l'environnement ESP-IDF
+# Installation ESP-IDF: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/
