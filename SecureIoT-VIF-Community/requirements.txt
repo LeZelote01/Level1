@@ -1,0 +1,6 @@
+# Dépendances Python pour les outils utilitaires Community Edition
+pyserial>=3.5
+esptool>=4.6.2
+
+# Pas de dépendances crypto avancées en Community (software seulement)
+# Les dépendances Enterprise (cryptography, pycryptodome) ne sont pas nécessaires
