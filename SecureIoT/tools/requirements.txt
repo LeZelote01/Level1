@@ -1,0 +1,5 @@
+# Dépendances Python pour les outils de développement SecureIoT-VIF
+pyserial>=3.5
+esptool>=4.6.2
+cryptography>=41.0.0
+pycryptodome>=3.18.0
