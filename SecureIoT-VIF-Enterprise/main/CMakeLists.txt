@@ -1,0 +1,20 @@
+idf_component_register(
+    SRCS "main.c"
+    INCLUDE_DIRS "."
+    REQUIRES 
+        "freertos"
+        "esp_system"
+        "esp_wifi"
+        "esp_event"
+        "esp_log"
+        "esp_err"
+        "esp_sleep"
+        "esp_timer"
+        "nvs_flash"
+        "driver"
+        "secure_element"
+        "firmware_verification"
+        "attestation"
+        "sensor_interface"
+        "security_monitor"
+)

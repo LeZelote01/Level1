@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS 
+        "esp32_crypto_manager.c"
+        "crypto_operations.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        "freertos"
+        "esp_system"
+        "esp_efuse"
+        "esp_secure_boot"
+        "esp_flash_encrypt"
+        "nvs_flash"
+        "mbedtls"
+        "driver"
+    PRIV_REQUIRES
+        "esp_timer"
+        "esp_log"
+)

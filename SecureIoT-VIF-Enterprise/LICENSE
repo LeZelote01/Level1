@@ -1,0 +1,61 @@
+LICENCE COMMERCIALE ENTERPRISE EDITION
+=====================================
+
+SecureIoT-VIF Enterprise Edition
+Copyright (c) 2025 SecureIoT-VIF Framework
+
+LICENCE COMMERCIALE ENTERPRISE
+===============================
+
+Cette licence couvre l'utilisation de SecureIoT-VIF Enterprise Edition pour les déploiements commerciaux et industriels.
+
+1. DROITS ACCORDÉS
+   - Usage commercial illimité en production
+   - Déploiement sur systèmes critiques
+   - Modifications et personnalisations autorisées
+   - Redistribution dans produits commerciaux (avec accord)
+   - Support technique garanti selon SLA
+
+2. FONCTIONNALITÉS INCLUSES
+   - Vérification d'intégrité temps réel
+   - Attestation continue autonome
+   - Détection ML comportementale
+   - Crypto HSM ESP32 intégré complet
+   - Protection eFuse avancée
+   - Secure Boot v2 et Flash Encryption
+   - Tests avancés et outils Enterprise
+   - Documentation privée complète
+
+3. SUPPORT ET SERVICES
+   - Support technique 24/7
+   - Mises à jour sécurité prioritaires
+   - Consulting et formation professionnelle
+   - SLA garantis selon contrat
+
+4. OBLIGATIONS
+   - Respect des certifications de sécurité
+   - Attribution des droits d'auteur
+   - Conformité réglementaire requise
+   - Audit sécurité périodique recommandé
+
+5. LIMITATIONS
+   - Licence liée au nombre de dispositifs déployés
+   - Usage restreint aux termes du contrat commercial
+   - Interdiction de rétro-ingénierie des algorithmes propriétaires
+
+6. SUPPORT TECHNIQUE
+   Email: enterprise-support@secureiot-vif.com
+   Tel: +33 1 XX XX XX XX
+   Portal: https://enterprise.secureiot-vif.com
+
+7. CONFORMITÉ
+   Cette édition respecte les standards :
+   - IEC 62443-4-2 (Sécurité industrielle)
+   - ISO 27001 (Management sécurité)
+   - Common Criteria EAL4+
+   - FIPS 140-2 Level 2
+
+POUR OBTENIR UNE LICENCE ENTERPRISE :
+Contactez notre équipe commerciale à sales@secureiot-vif.com
+
+CETTE LICENCE EST VALIDE UNIQUEMENT AVEC UN CONTRAT COMMERCIAL SIGNÉ.

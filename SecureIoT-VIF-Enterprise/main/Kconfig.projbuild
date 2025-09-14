@@ -1,0 +1,92 @@
+menu "SecureIoT-VIF Enterprise Configuration"
+
+    menu "Enterprise Security Features"
+        config SECURE_IOT_VIF_REALTIME_INTEGRITY
+            bool "Enable Real-time Integrity Checking"
+            default y
+            help
+                Enable continuous firmware integrity verification during runtime.
+                This is an Enterprise-only feature.
+
+        config INTEGRITY_CHECK_INTERVAL_SECONDS
+            int "Integrity Check Interval (seconds)"
+            depends on SECURE_IOT_VIF_REALTIME_INTEGRITY
+            default 60
+            range 30 300
+            help
+                Interval between real-time integrity checks in seconds.
+
+        config SECURE_IOT_VIF_CONTINUOUS_ATTESTATION
+            bool "Enable Continuous Attestation"
+            default y
+            help
+                Enable autonomous continuous attestation.
+                This is an Enterprise-only feature.
+
+        config ATTESTATION_INTERVAL_SECONDS
+            int "Attestation Interval (seconds)"
+            depends on SECURE_IOT_VIF_CONTINUOUS_ATTESTATION
+            default 30
+            range 15 120
+            help
+                Interval between attestation operations in seconds.
+
+        config SECURE_IOT_VIF_ML_ANOMALY_DETECTION
+            bool "Enable ML Anomaly Detection"
+            default y
+            help
+                Enable machine learning-based behavioral anomaly detection.
+                This is an Enterprise-only feature.
+
+        config ML_LEARNING_RATE
+            int "ML Learning Rate (1-100)"
+            depends on SECURE_IOT_VIF_ML_ANOMALY_DETECTION
+            default 10
+            range 1 100
+            help
+                Learning rate for ML anomaly detection (1=slow, 100=fast).
+
+        config SECURE_IOT_VIF_ADVANCED_MONITORING
+            bool "Enable Advanced Monitoring"
+            default y
+            help
+                Enable advanced system monitoring and analytics.
+                This is an Enterprise-only feature.
+    endmenu
+
+    menu "Enterprise Hardware Configuration"
+        config DHT22_INDUSTRIAL_GRADE
+            bool "Use Industrial Grade DHT22 Settings"
+            default y
+            help
+                Enable industrial-grade configuration for DHT22 sensor.
+
+        config MONITORING_DASHBOARD_ENABLED
+            bool "Enable Monitoring Dashboard"
+            default y
+            help
+                Enable real-time monitoring dashboard interface.
+
+        config ENTERPRISE_TOOLS_ENABLED
+            bool "Enable Enterprise Tools"
+            default y
+            help
+                Enable advanced Enterprise debugging and monitoring tools.
+    endmenu
+
+    menu "Enterprise Power Management"
+        config ENTERPRISE_POWER_OPTIMIZATION
+            bool "Enable Enterprise Power Optimization"
+            default y
+            help
+                Enable advanced power management for Enterprise deployments.
+
+        config ENTERPRISE_ADAPTIVE_FREQUENCY
+            bool "Enable Adaptive CPU Frequency"
+            depends on ENTERPRISE_POWER_OPTIMIZATION
+            default y
+            help
+                Enable adaptive CPU frequency scaling based on load.
+    endmenu
+
+endmenu

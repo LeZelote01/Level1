@@ -1,0 +1,216 @@
+# Configuration par défaut SecureIoT-VIF Enterprise Edition
+# Version: 2.0.0 Enterprise
+# Optimisée pour déploiements production critiques
+
+# ======================================
+# Configuration générale Enterprise
+# ======================================
+CONFIG_IDF_TARGET="esp32"
+CONFIG_SECURE_IOT_VIF_ENTERPRISE=y
+CONFIG_SECURE_IOT_VIF_VERSION="2.0.0-ENTERPRISE"
+
+# ======================================
+# Sécurité Enterprise (CRITIQUE)
+# ======================================
+
+# Secure Boot v2 (OBLIGATOIRE Enterprise)
+CONFIG_SECURE_BOOT=y
+CONFIG_SECURE_BOOT_V2_ENABLED=y
+CONFIG_SECURE_BOOT_VERIFICATION_KEY=y
+CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES=y
+
+# Flash Encryption (OBLIGATOIRE Enterprise)
+CONFIG_SECURE_FLASH_ENC_ENABLED=y
+CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT=n
+CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE=y
+
+# eFuse Protection (Enterprise uniquement)
+CONFIG_EFUSE_SECURE_VERSION_NUM_BLOCK=y
+CONFIG_EFUSE_DISABLE_BASIC_ROM_CONSOLE=y
+
+# ======================================
+# Crypto Hardware ESP32 (Enterprise Max)
+# ======================================
+
+# Hardware Security Module complet
+CONFIG_ESP32_ENABLE_COREDUMP_TO_NONE=y
+CONFIG_ESP32_DISABLE_BASIC_ROM_CONSOLE=y
+
+# True Random Number Generator optimisé
+CONFIG_ESP32_RNG_ENTROPY_SOURCE_ENABLE=y
+CONFIG_MBEDTLS_HARDWARE_ENTROPY=y
+
+# Accélérations matérielles maximales
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+CONFIG_MBEDTLS_HARDWARE_ECC=y
+CONFIG_MBEDTLS_HARDWARE_RSA=y
+
+# Algorithmes crypto Enterprise
+CONFIG_MBEDTLS_ECDSA_C=y
+CONFIG_MBEDTLS_ECDH_C=y
+CONFIG_MBEDTLS_ECP_DP_SECP256R1_ENABLED=y
+CONFIG_MBEDTLS_AES_256_C=y
+CONFIG_MBEDTLS_SHA256_C=y
+CONFIG_MBEDTLS_SHA512_C=y
+
+# ======================================
+# Optimisations Performance Enterprise
+# ======================================
+
+# Optimisation compilateur production
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_COMPILER_OPTIMIZATION_SIZE=n
+
+# Cache et mémoire optimisés
+CONFIG_ESP32_SPIRAM_SUPPORT=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+
+# FreeRTOS optimisé Enterprise
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_OPTIMIZED_SCHEDULER=y
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+
+# ======================================
+# Gestion d'énergie Enterprise
+# ======================================
+CONFIG_PM_ENABLE=y
+CONFIG_PM_DFS_INIT_AUTO=y
+CONFIG_PM_USE_RTC_TIMER_REF=y
+CONFIG_PM_PROFILING=y
+
+# Light sleep optimisé
+CONFIG_PM_SLP_IRAM_OPT=y
+CONFIG_ESP32_DEEP_SLEEP_WAKEUP_DELAY=2000
+
+# ======================================
+# Monitoring et Logging Enterprise
+# ======================================
+
+# Logging niveau production
+CONFIG_LOG_DEFAULT_LEVEL_ERROR=n
+CONFIG_LOG_DEFAULT_LEVEL_WARN=n
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL_DEBUG=n
+CONFIG_LOG_DEFAULT_LEVEL=3
+
+# Timestamps précis
+CONFIG_LOG_TIMESTAMP_SOURCE_RTOS=y
+
+# ======================================
+# Réseau et Communication
+# ======================================
+
+# WiFi optimisé Enterprise
+CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM=16
+CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP32_WIFI_AMPDU_TX_ENABLED=y
+CONFIG_ESP32_WIFI_AMPDU_RX_ENABLED=y
+
+# TCP/IP stack optimisé
+CONFIG_LWIP_TCP_SND_BUF_DEFAULT=8192
+CONFIG_LWIP_TCP_WND_DEFAULT=8192
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=16
+
+# ======================================
+# Fonctionnalités Enterprise Uniques
+# ======================================
+
+# Vérification temps réel (Enterprise)
+CONFIG_SECURE_IOT_VIF_REALTIME_INTEGRITY=y
+CONFIG_INTEGRITY_CHECK_INTERVAL_SECONDS=60
+
+# Attestation continue (Enterprise)
+CONFIG_SECURE_IOT_VIF_CONTINUOUS_ATTESTATION=y
+CONFIG_ATTESTATION_INTERVAL_SECONDS=30
+
+# ML comportemental (Enterprise)
+CONFIG_SECURE_IOT_VIF_ML_ANOMALY_DETECTION=y
+CONFIG_ML_LEARNING_RATE=10
+
+# Monitoring avancé (Enterprise)
+CONFIG_SECURE_IOT_VIF_ADVANCED_MONITORING=y
+CONFIG_MONITORING_DASHBOARD_ENABLED=y
+
+# ======================================
+# Capteurs et GPIO
+# ======================================
+
+# DHT22 optimisé production
+CONFIG_DHT22_GPIO_PIN=4
+CONFIG_DHT22_POWER_CONTROL_GPIO=5
+CONFIG_DHT22_INDUSTRIAL_GRADE=y
+
+# LEDs et contrôles
+CONFIG_STATUS_LED_GPIO=2
+CONFIG_SECURE_RESET_GPIO=0
+
+# ======================================
+# Stockage et NVS
+# ======================================
+
+# NVS sécurisé
+CONFIG_NVS_ENCRYPTION=y
+CONFIG_NVS_SEC_KEY_PROTECTION_SCHEME_EFUSE_KEYS=y
+
+# Partition optimisée Enterprise
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions_enterprise.csv"
+
+# ======================================
+# Debug et Test (Production)
+# ======================================
+
+# Debug limité en production
+CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
+CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=n
+
+# Core dump sécurisé
+CONFIG_ESP32_ENABLE_COREDUMP_TO_FLASH=y
+CONFIG_ESP32_COREDUMP_DATA_FORMAT_ELF=y
+
+# ======================================
+# Watchdog et Sécurité Système
+# ======================================
+
+# Watchdogs Enterprise
+CONFIG_ESP_TASK_WDT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
+
+# Protection stack overflow
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
+
+# ======================================
+# Composants Enterprise spécifiques
+# ======================================
+
+# Composant attestation (Enterprise uniquement)
+CONFIG_ATTESTATION_COMPONENT_ENABLED=y
+
+# Composant ML avancé
+CONFIG_ML_ANOMALY_COMPONENT_ENABLED=y
+
+# Outils Enterprise
+CONFIG_ENTERPRISE_TOOLS_ENABLED=y
+CONFIG_MONITORING_DASHBOARD_ENABLED=y
+
+# ======================================
+# Optimisations mémoire Enterprise
+# ======================================
+
+# Heap optimisé
+CONFIG_ESP32_ENABLE_STACK_OVERFLOW_DEBUG=y
+CONFIG_HEAP_CORRUPTION_DETECTION_COMPREHENSIVE=y
+
+# ======================================
+# IMPORTANT: Configuration de production
+# ======================================
+# Cette configuration est optimisée pour les déploiements
+# Enterprise en production critique. Ne pas modifier sans
+# consultation de l'équipe Enterprise Support.
+#
+# Support: enterprise-support@secureiot-vif.com
+# ======================================
